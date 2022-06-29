@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+
+/*.toppane {
+  height: 10%;
+  width: 100%;
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  overflow-x: hidden;
+  left: 0;
+  background-color: rgb(232, 243, 255);
+}*/
+
+.leftpane {
+  height: 100%;
+  width: 20%;
+  position: fixed;
+  z-index: 1;
+  bottom: 0;
+  overflow-x: hidden;
+  left: 0;
+  background-color: rgb(232, 243, 255);
+}
+
+.rightpane {
+  height: 100%;
+  width: 80%;
+  position: fixed;
+  z-index: 1;
+  bottom: 0;
+  overflow-x: hidden;
+  right: 0;
+}
+
+.selectable {
+  border-top: 1px solid rgb(232, 243, 255);
+  display: block;
+  padding: 5px;
+}
+
+.homebutton {
+  display: inline-block;
+  height: 100%;
+  aspect-ratio: 1;
+}
+
+.padded {
+  margin: 10px;
+  position:absolute;
+  bottom:0;
+  top:0;
+  left:0;
+  right:0;
+}
+
+.selector {
+  background-color: white;
+}
+
+.bottombuttons {
+  display: block;
+  position:absolute;
+  bottom:0;
+  width:100%
+}
+
+button {
+  background-color: #2876D4;
+  color: white;
+  padding: 8px;
+  border-radius: 4px;
+  border: none;
+  flex-basis: 100%;
+  font-size: 16px;
+  width:100%;
+  margin:3px;
+}
+
+.submitbutton {
+  display: block;
+  width: 100%;
+  margin:0px;
+}
+
+.buttonthird {
+  display: inline-block;
+  width: 33.33%;
+  padding: 2px;
+}
+
+.threebuttons {
+  display: flex;
+  width:100%;
+}
+
+label {
+  display: block;
+}
+
+input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+}
+
+[type="radio"]:checked+* {
+    background-color: silver;
+}
+
+[type="radio"]:not(:checked)+* {
+    background-color: white;
+}
+
+</style>
+
+<script src="https://unpkg.com/@panzoom/panzoom@4.5.0/dist/panzoom.min.js"></script>
+
+</head>
+<body>
+
+<!--<div class="toppane">
+  <span class="homebutton" onclick="goHome()"><svg width="90%" height="90%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 22.2338V11.4338L3.9436 6L12 1.16618L21 6.56618V17.4338L13 22.2338Z" fill="#B8C4D3"></path><path d="M3 17.4338V7.76624L6 9.56624V15.5662L11 18.5662V22.2338L3 17.4338Z" fill="#B8C4D3"></path></svg></span>
+</div>-->
+
+<div class="leftpane">
+  <div class="padded">
+    <a href="https://app.labelbox.com">⇦ Back to labelbox</a>
+    
+    <p>Asset details</p>
+    
+    <h3>This is the question</h3>
+
+    <div class="selector">
+    <label>
+      <input type="radio" id="aaa" name="drone" value="aaa" >
+      <span class="selectable">Aaa</span>
+    </label>
+
+    <label>
+      <input type="radio" id="bbb" name="drone" value="bbb" checked>
+      <span class="selectable">bbb</span>
+    </label>
+
+    <label>
+      <input type="radio" id="ccc" name="drone" value="ccc" >
+      <span class="selectable">ccc</span>
+    </label>
+    </div>
+    
+    <div class="bottombuttons">
+        <!--<div class="buttonthird"><button type="button">Last Image</button></div><div class="buttonthird"><button type="button">Skip Image</button></div><div class="buttonthird"><button type="button">Next Image</button></div>-->
+        <div class="threebuttons"><button type="button">Last Image</button><button type="button">Skip Image</button><button type="button">Next Image</button></div>
+        <button class="submitbutton" type="button">Submit</button>
+    </div>
+    
+  </div>
+</div>
+
+<div class="rightpane">
+    <img id="imageToLabel" width="100%" src="https://storage.googleapis.com/dev-decantimaging-datasets/trash-detection/for-labelling/robot-pickable-recently-whitelisted-2022-06-21/AD01A01-20210922_010307_082__1632272587082.jpg?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=storage-prd-read-dev-sit-write%40ocado-perception-robotics.iam.gserviceaccount.com%2F20220628%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20220628T152957Z&X-Goog-Expires=604800&X-Goog-SignedHeaders=host&X-Goog-Signature=688339a5e0b66093e9c10f6e87639e29e45fb790c6cbae21786e61af2802ed488c96ac6e494fc4c644fc537612fd9c497eb4e54a7bff37d7f6574cee8dc95bbec92f3b2ff005dc1b346574ba852377aa8a4385f006aaab644686d6da03455093fe236b63b7afe1d716e4d3c5c11fb1ee4d77d389a46cc754157f5cec1020f2edc6b5e13f254eefda16146999f8ffae56fed481934ec24b32db082c03633cbf598c286d20f8fe64764a2b8130ab3582bd148ebccc38cf448975ce28db5fdb153a749078f456dc8ef8db79b95b6d1182f9a94a75822c11aaccc82a44e5db47de056285c3fd2cafb56a67c3cfb4fd368b14d92279c7e399348f699674492a8ebbdd">
+</div>
+
+<script>
+const elem = document.getElementById('imageToLabel');
+
+const panzoom = Panzoom(elem, { canvas: true })
+const parent = elem.parentElement
+// No function bind needed
+parent.addEventListener('wheel', panzoom.zoomWithWheel)
+
+// This demo binds to shift + wheel
+parent.addEventListener('wheel', function(event) {
+  if (!event.shiftKey) return
+  panzoom.zoomWithWheel(event)
+})
+
+</script>
+
+</body>
+</html> 
+
