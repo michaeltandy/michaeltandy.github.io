@@ -4,17 +4,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 
-/*.toppane {
-  height: 10%;
-  width: 100%;
-  position: fixed;
-  z-index: 1;
-  top: 0;
-  overflow-x: hidden;
-  left: 0;
-  background-color: rgb(232, 243, 255);
-}*/
-
 .leftpane {
   height: 100%;
   width: 20%;
@@ -40,12 +29,6 @@
   border-top: 1px solid rgb(232, 243, 255);
   display: block;
   padding: 5px;
-}
-
-.homebutton {
-  display: inline-block;
-  height: 100%;
-  aspect-ratio: 1;
 }
 
 .padded {
@@ -97,6 +80,14 @@ button {
   width:100%;
 }
 
+[type="button"]:enabled {
+    opacity: 1;
+}
+
+[type="button"]:not(:enabled) {
+    opacity: 0.2;
+}
+
 label {
   display: block;
 }
@@ -118,65 +109,222 @@ input[type="radio"] {
 
 <script src="https://unpkg.com/@panzoom/panzoom@4.5.0/dist/panzoom.min.js"></script>
 
+<script src="https://api.labelbox.com/static/labeling-api.js"></script>
+
 </head>
 <body>
 
-<!--<div class="toppane">
-  <span class="homebutton" onclick="goHome()"><svg width="90%" height="90%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 22.2338V11.4338L3.9436 6L12 1.16618L21 6.56618V17.4338L13 22.2338Z" fill="#B8C4D3"></path><path d="M3 17.4338V7.76624L6 9.56624V15.5662L11 18.5662V22.2338L3 17.4338Z" fill="#B8C4D3"></path></svg></span>
-</div>-->
-
 <div class="leftpane">
   <div class="padded">
-    <a href="https://app.labelbox.com">⇦ Back to labelbox</a>
+    <a href="https://app.labelbox.com">&lt;- Back to labelbox</a>
     
-    <p>Asset details</p>
+    <p id="assetExternalId">Loading...</p>
     
-    <h3>This is the question</h3>
-
-    <div class="selector">
-    <label>
-      <input type="radio" id="aaa" name="drone" value="aaa" >
-      <span class="selectable">Aaa</span>
-    </label>
-
-    <label>
-      <input type="radio" id="bbb" name="drone" value="bbb" checked>
-      <span class="selectable">bbb</span>
-    </label>
-
-    <label>
-      <input type="radio" id="ccc" name="drone" value="ccc" >
-      <span class="selectable">ccc</span>
-    </label>
-    </div>
+    <div id="questionList"></div>
+    
     
     <div class="bottombuttons">
         <!--<div class="buttonthird"><button type="button">Last Image</button></div><div class="buttonthird"><button type="button">Skip Image</button></div><div class="buttonthird"><button type="button">Next Image</button></div>-->
-        <div class="threebuttons"><button type="button">Last Image</button><button type="button">Skip Image</button><button type="button">Next Image</button></div>
-        <button class="submitbutton" type="button">Submit</button>
+        <div class="threebuttons"><button type="button" id="back" onclick="goBack()">Last Image</button><button type="button" id="skip" onclick="skip()">Skip Image</button><button type="button" id="next" onclick="goNext()">Next Image</button></div>
+        <button class="submitbutton" id="submit" type="button" onclick="submit()">Submit</button>
     </div>
     
   </div>
 </div>
 
 <div class="rightpane">
-    <img id="imageToLabel" width="100%" src="https://storage.googleapis.com/dev-decantimaging-datasets/trash-detection/for-labelling/robot-pickable-recently-whitelisted-2022-06-21/AD01A01-20210922_010307_082__1632272587082.jpg?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=storage-prd-read-dev-sit-write%40ocado-perception-robotics.iam.gserviceaccount.com%2F20220628%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20220628T152957Z&X-Goog-Expires=604800&X-Goog-SignedHeaders=host&X-Goog-Signature=688339a5e0b66093e9c10f6e87639e29e45fb790c6cbae21786e61af2802ed488c96ac6e494fc4c644fc537612fd9c497eb4e54a7bff37d7f6574cee8dc95bbec92f3b2ff005dc1b346574ba852377aa8a4385f006aaab644686d6da03455093fe236b63b7afe1d716e4d3c5c11fb1ee4d77d389a46cc754157f5cec1020f2edc6b5e13f254eefda16146999f8ffae56fed481934ec24b32db082c03633cbf598c286d20f8fe64764a2b8130ab3582bd148ebccc38cf448975ce28db5fdb153a749078f456dc8ef8db79b95b6d1182f9a94a75822c11aaccc82a44e5db47de056285c3fd2cafb56a67c3cfb4fd368b14d92279c7e399348f699674492a8ebbdd">
+    <img id="imageToLabel" width="100%" src="">
 </div>
 
 <script>
-const elem = document.getElementById('imageToLabel');
+  const elem = document.getElementById('imageToLabel');
 
-const panzoom = Panzoom(elem, { canvas: true })
-const parent = elem.parentElement
-// No function bind needed
-parent.addEventListener('wheel', panzoom.zoomWithWheel)
+  const panzoom = Panzoom(elem, { canvas: true })
+  const parent = elem.parentElement
+  parent.addEventListener('wheel', panzoom.zoomWithWheel)
+  parent.addEventListener('wheel', function(event) {
+    if (!event.shiftKey) return
+    panzoom.zoomWithWheel(event)
+  })
+</script>
 
-// This demo binds to shift + wheel
-parent.addEventListener('wheel', function(event) {
-  if (!event.shiftKey) return
-  panzoom.zoomWithWheel(event)
-})
+<script>
+  let state = {
+    projectId: new URL(window.location.href).searchParams.get("project"),
+    currentAsset: undefined,
+    preloadedAsset: undefined,
+    ongoingSubmit: undefined,
+  };
 
+  function populateQuestion({ type, name, options, instructions }, answer) {
+    console.log(options);
+    optionList = options.map(({ value, label }) => {
+        cs = (answer || []).indexOf(value) !== -1 ? "checked" : "";
+        return `<label><input type="radio" id="${value}" name="drone" value="${value}" ${cs} ><span class="selectable">${label}</span></label>`;
+    }).join("");
+    
+    return `<h3>${instructions}</h3><div class="selector" id="${name}">` + optionList + `</div>`
+  }
+
+  function asyncLoadImage(url) {
+    return new Promise((resolve) => {
+      const img = document.createElement('img');
+      img.src = url;
+      img.onload = () => {
+        img.remove();
+        resolve();
+      };
+      img.style.display = 'none',
+      img.style.width = '0px',
+      img.style.height = '0px',
+      document.body.appendChild(img);
+    });
+  }
+
+  function preloadFunction(asset) {
+    console.log("Preloaded asset", asset);
+    state.preloadedAsset = asset;
+    return asyncLoadImage(asset.data);
+  }
+
+  Labelbox.enablePreloading({preloadFunction})
+
+  function createQuestion(question, answers) {
+    const optionalAnswer = (answers || {})[question.name];
+    return populateQuestion(question, optionalAnswer);
+  }
+
+  let classifications = [];
+  let markQuestionsAsLoaded;
+  new Promise(resolve => {
+    markQuestionsAsLoaded = resolve;
+  }).then(() => {
+    Labelbox.currentAsset().subscribe(asset => {
+      console.log("currentAsset", asset);
+      if (asset) {
+        maybeDrawAsset(asset);
+      }
+    });
+  });
+
+  function drawQuestions(classifications, answers) {
+    document.getElementById('questionList').innerHTML = classifications
+      .map(classification => createQuestion(classification, answers))
+      .join("");
+  }
+
+  Labelbox.getTemplateCustomization().subscribe(customization => {
+    classifications = customization.classifications;
+    drawQuestions(classifications);
+    markQuestionsAsLoaded();
+  });
+
+  function skip() {
+    state.preloadedAsset = undefined;
+    Labelbox.skip().then(() => {
+      Labelbox.fetchNextAssetToLabel();
+    });
+  }
+
+  function getLabel() {
+  
+    answers = Array.from(document.getElementById('questionList').children)
+        .map(node => {
+      const key = node.getAttribute("id");
+        const inputs = Array.from(node.querySelectorAll("input"));
+        const selected = inputs.find(child => child.checked);
+        return {
+          [key]: selected && selected.getAttribute("valuetosubmit")
+        };
+      });
+
+    return Object.assign({}, ...answers);
+  }
+
+  function submit() {
+    const label = JSON.stringify(getLabel());
+    const jumpToNext = Boolean(!state.currentAsset.label);
+    state.ongoingSubmit = state.currentAsset
+    Labelbox.setLabelForAsset(label).then(() => {
+      state.ongoingSubmit = undefined
+      if (jumpToNext) {
+        Labelbox.fetchNextAssetToLabel();
+      }
+    });
+    if (jumpToNext) {
+      if (state.preloadedAsset) {
+        drawAsset(state.preloadedAsset)
+        state.preloadedAsset = undefined
+      } else {
+        document.getElementById('imageToLabel').src = ""
+      }
+    }
+  }
+
+  function goBack() {
+    state.preloadedAsset = undefined;
+    if (state.currentAsset.previous) {
+      Labelbox.setLabelAsCurrentAsset(state.currentAsset.previous);
+    }
+  }
+
+  function goNext() {
+    state.preloadedAsset = undefined;
+    if (state.currentAsset.next) {
+      Labelbox.setLabelAsCurrentAsset(state.currentAsset.next);
+    } else {
+      Labelbox.fetchNextAssetToLabel();
+    }
+  }
+
+  function maybeDrawAsset(asset) {
+      if ((state.ongoingSubmit && state.ongoingSubmit.id) == asset.id) {
+          console.log("Not redrawing asset during submit...")
+      } else {
+          drawAsset(asset)
+      }
+  }
+
+  function drawAsset(asset) {
+    document.getElementById("back").disabled = !Boolean(asset.previous);  
+    document.getElementById("next").disabled = !Boolean(asset.next || asset.label);
+    document.getElementById("submit").disabled = Boolean(state.ongoingSubmit);
+
+    /*const backButton = document.querySelector("#back");
+    backButton.style.opacity = asset.previous ? 1 : 0.2;
+    backButton.style.cursor = asset.previous ? "pointer" : "inherit";
+    
+    const hasNext = Boolean(asset.next || asset.label);
+    const nextButton = document.querySelector("#next");
+    nextButton.style.opacity = hasNext ? 1 : 0.2;
+    nextButton.style.cursor = hasNext ? "pointer" : "inherit";
+    
+    const readyToSubmit = !Boolean(state.ongoingSubmit)
+    const submitButton = document.querySelector("#submit");
+    submitButton.style.opacity = readyToSubmit ? 1 : 0.2;
+    submitButton.style.cursor = readyToSubmit ? "pointer" : "inherit";*/
+
+    if ((state.currentAsset && state.currentAsset.data) !== asset.data) {
+      document.getElementById('imageToLabel').src=asset.data;
+    }
+    if ((state.currentAsset && state.currentAsset.id) !== asset.id) {
+      document.getElementById('assetExternalId').innerHTML=asset.externalId;
+      if (asset.label) {
+        try {
+          const label = JSON.parse(asset.label);
+          drawQuestions(classifications, label);
+        } catch (e) {
+          console.log("failed to read label", e);
+        }
+      } else {
+        drawQuestions(classifications);
+      }
+    }
+    state = {
+      ...state,
+      currentAsset: asset
+    };
+  }
 </script>
 
 </body>
