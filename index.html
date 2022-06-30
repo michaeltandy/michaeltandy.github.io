@@ -124,9 +124,8 @@ input[type="radio"] {
     
     
     <div class="bottombuttons">
-        <!--<div class="buttonthird"><button type="button">Last Image</button></div><div class="buttonthird"><button type="button">Skip Image</button></div><div class="buttonthird"><button type="button">Next Image</button></div>-->
         <div class="threebuttons"><button type="button" id="back" onclick="goBack()">Last Image</button><button type="button" id="skip" onclick="skip()">Skip Image</button><button type="button" id="next" onclick="goNext()">Next Image</button></div>
-        <button class="submitbutton" id="submit" type="button" onclick="submit()">Submit</button>
+        <button class="submitbutton" id="submit" type="button" onclick="submit()">Submit (e)</button>
     </div>
     
   </div>
@@ -157,10 +156,9 @@ input[type="radio"] {
   };
 
   function populateQuestion({ type, name, options, instructions }, answer) {
-    console.log(options);
     optionList = options.map(({ value, label }) => {
         cs = (answer || []).indexOf(value) !== -1 ? "checked" : "";
-        return `<label><input type="radio" id="${value}" name="drone" value="${value}" ${cs} ><span class="selectable">${label}</span></label>`;
+        return `<label><input type="radio" id="${value}" name="${name}" onclick="selectionMade()" value="${value}" ${cs} ><span class="selectable">${label}</span></label>`;
     }).join("");
     
     return `<h3>${instructions}</h3><div class="selector" id="${name}">` + optionList + `</div>`
@@ -182,7 +180,6 @@ input[type="radio"] {
   }
 
   function preloadFunction(asset) {
-    console.log("Preloaded asset", asset);
     state.preloadedAsset = asset;
     return asyncLoadImage(asset.data);
   }
@@ -200,7 +197,6 @@ input[type="radio"] {
     markQuestionsAsLoaded = resolve;
   }).then(() => {
     Labelbox.currentAsset().subscribe(asset => {
-      console.log("currentAsset", asset);
       if (asset) {
         maybeDrawAsset(asset);
       }
@@ -228,13 +224,13 @@ input[type="radio"] {
 
   function getLabel() {
   
-    answers = Array.from(document.getElementById('questionList').children)
+    answers = Array.from(document.getElementById('questionList').querySelectorAll("div"))
         .map(node => {
-      const key = node.getAttribute("id");
+        const key = node.getAttribute("id");
         const inputs = Array.from(node.querySelectorAll("input"));
         const selected = inputs.find(child => child.checked);
         return {
-          [key]: selected && selected.getAttribute("valuetosubmit")
+          [key]: selected && selected.getAttribute("value")
         };
       });
 
@@ -242,6 +238,9 @@ input[type="radio"] {
   }
 
   function submit() {
+    if (document.getElementById("submit").disabled || Boolean(state.ongoingSubmit))
+        return;
+  
     const label = JSON.stringify(getLabel());
     const jumpToNext = Boolean(!state.currentAsset.label);
     state.ongoingSubmit = state.currentAsset
@@ -251,6 +250,7 @@ input[type="radio"] {
         Labelbox.fetchNextAssetToLabel();
       }
     });
+    document.getElementById("submit").disabled = true
     if (jumpToNext) {
       if (state.preloadedAsset) {
         drawAsset(state.preloadedAsset)
@@ -262,6 +262,8 @@ input[type="radio"] {
   }
 
   function goBack() {
+    if (document.getElementById("back").disabled)
+        return;
     state.preloadedAsset = undefined;
     if (state.currentAsset.previous) {
       Labelbox.setLabelAsCurrentAsset(state.currentAsset.previous);
@@ -269,6 +271,8 @@ input[type="radio"] {
   }
 
   function goNext() {
+    if (document.getElementById("next").disabled)
+        return;
     state.preloadedAsset = undefined;
     if (state.currentAsset.next) {
       Labelbox.setLabelAsCurrentAsset(state.currentAsset.next);
@@ -284,25 +288,16 @@ input[type="radio"] {
           drawAsset(asset)
       }
   }
+  
+  function selectionMade() {
+      document.getElementById("submit").disabled = false
+      return true
+  }
 
   function drawAsset(asset) {
     document.getElementById("back").disabled = !Boolean(asset.previous);  
     document.getElementById("next").disabled = !Boolean(asset.next || asset.label);
-    document.getElementById("submit").disabled = Boolean(state.ongoingSubmit);
-
-    /*const backButton = document.querySelector("#back");
-    backButton.style.opacity = asset.previous ? 1 : 0.2;
-    backButton.style.cursor = asset.previous ? "pointer" : "inherit";
-    
-    const hasNext = Boolean(asset.next || asset.label);
-    const nextButton = document.querySelector("#next");
-    nextButton.style.opacity = hasNext ? 1 : 0.2;
-    nextButton.style.cursor = hasNext ? "pointer" : "inherit";
-    
-    const readyToSubmit = !Boolean(state.ongoingSubmit)
-    const submitButton = document.querySelector("#submit");
-    submitButton.style.opacity = readyToSubmit ? 1 : 0.2;
-    submitButton.style.cursor = readyToSubmit ? "pointer" : "inherit";*/
+    //document.getElementById("submit").disabled = true;
 
     if ((state.currentAsset && state.currentAsset.data) !== asset.data) {
       document.getElementById('imageToLabel').src=asset.data;
@@ -325,6 +320,15 @@ input[type="radio"] {
       currentAsset: asset
     };
   }
+  
+  function doc_keyUp(e) {
+    if (e.key === 'e') {
+        submit();
+    }
+  }
+  
+  document.addEventListener('keyup', doc_keyUp, false);
+  
 </script>
 
 </body>
