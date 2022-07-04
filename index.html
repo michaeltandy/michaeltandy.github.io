@@ -10,7 +10,7 @@
   position: fixed;
   z-index: 1;
   bottom: 0;
-  overflow-x: hidden;
+  overflow: hidden;
   left: 0;
   background-color: rgb(232, 243, 255);
 }
@@ -38,17 +38,18 @@
   top:0;
   left:0;
   right:0;
+  flex-direction: column;
+  display: flex;
+}
+
+.scrollable {
+  flex: 1;
+  overflow-y: auto;
+  overflow-wrap: break-word;
 }
 
 .selector {
   background-color: white;
-}
-
-.bottombuttons {
-  display: block;
-  position:absolute;
-  bottom:0;
-  width:100%
 }
 
 button {
@@ -116,12 +117,13 @@ input[type="radio"] {
 
 <div class="leftpane">
   <div class="padded">
+   <div class="scrollable">
     <a href="https://app.labelbox.com">&lt;- Back to labelbox</a>
     
     <p id="assetExternalId">Loading...</p>
     
     <div id="questionList"></div>
-    
+   </div> 
     
     <div class="bottombuttons">
         <div class="threebuttons"><button type="button" id="back" onclick="goBack()">Last Image</button><button type="button" id="skip" onclick="skip()">Skip Image</button><button type="button" id="next" onclick="goNext()">Next Image</button></div>
@@ -141,10 +143,10 @@ input[type="radio"] {
   const panzoom = Panzoom(elem, { canvas: true })
   const parent = elem.parentElement
   parent.addEventListener('wheel', panzoom.zoomWithWheel)
-  parent.addEventListener('wheel', function(event) {
+  /*parent.addEventListener('wheel', function(event) {
     if (!event.shiftKey) return
     panzoom.zoomWithWheel(event)
-  })
+  })*/
 </script>
 
 <script>
@@ -258,6 +260,7 @@ input[type="radio"] {
       } else {
         document.getElementById('imageToLabel').src = ""
       }
+      panzoom.reset()
     }
   }
 
