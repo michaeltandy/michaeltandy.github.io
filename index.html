@@ -25,6 +25,11 @@
   right: 0;
 }
 
+.bigdiv {
+  height: 100%;
+  width: 100%;
+}
+
 .selectable {
   border-top: 1px solid rgb(232, 243, 255);
   display: block;
@@ -106,6 +111,11 @@ input[type="radio"] {
     background-color: white;
 }
 
+.instructioniFrame {
+  border: 0;
+  display: 'none';
+}
+
 </style>
 
 <script src="https://unpkg.com/@panzoom/panzoom@4.5.0/dist/panzoom.min.js"></script>
@@ -118,23 +128,37 @@ input[type="radio"] {
 <div class="leftpane">
   <div class="padded">
    <div class="scrollable">
-    <a href="https://app.labelbox.com">&lt;- Back to labelbox</a>
+    <a href="https://app.labelbox.com" id="backToLabelboxlink">&lt;- Back to labelbox</a>
+    &mdash;
+    <a href="#" id="viewInstructionsButton" onclick="viewInstructions()">Instructions</a>
     
     <p id="assetExternalId">Loading...</p>
-    
     <div id="questionList"></div>
+    
+    <div id="instructionAccept">
+        <p>Please read the instructions</p>
+        <button class="submitbutton" id="acceptInstructions" type="button" onclick="acceptInstructions()">I have read the instructions</button>
+    </div>
+    
    </div> 
     
-    <div class="bottombuttons">
-        <div class="threebuttons"><button type="button" id="back" onclick="goBack()">Last Image</button><button type="button" id="skip" onclick="skip()">Skip Image</button><button type="button" id="next" onclick="goNext()">Next Image</button></div>
-        <button class="submitbutton" id="submit" type="button" onclick="submit()">Submit (e)</button>
+    <div class="bottombuttons" id="bottombuttons">
+        <div class="threebuttons">
+            <button type="button" id="back" onclick="goBack()" disabled>Last Image</button>
+            <button type="button" id="skip" onclick="skip()" disabled>Skip Image</button>
+            <button type="button" id="next" onclick="goNext()" disabled>Next Image</button></div>
+        <button class="submitbutton" id="submit" type="button" onclick="submit()" disabled>Submit (e)</button>
     </div>
     
   </div>
 </div>
 
 <div class="rightpane">
+  <iframe id="instructioniFrame" src="" width='100%' height='100%'></iframe>
+
+  <div id="imageParent" class="bigdiv">
     <img id="imageToLabel" width="100%" src="">
+  </div>
 </div>
 
 <script>
@@ -143,10 +167,6 @@ input[type="radio"] {
   const panzoom = Panzoom(elem, { canvas: true })
   const parent = elem.parentElement
   parent.addEventListener('wheel', panzoom.zoomWithWheel)
-  /*parent.addEventListener('wheel', function(event) {
-    if (!event.shiftKey) return
-    panzoom.zoomWithWheel(event)
-  })*/
 </script>
 
 <script>
@@ -156,6 +176,56 @@ input[type="radio"] {
     preloadedAsset: undefined,
     ongoingSubmit: undefined,
   };
+  
+  document.getElementById("backToLabelboxlink").href="https://app.labelbox.com/projects/"+state.projectId+"/overview"
+  
+  function imageAndLabellingControlDisplay(disp) {
+      document.getElementById("imageParent").style.display = disp;
+      document.getElementById("assetExternalId").style.display = disp;
+      document.getElementById("questionList").style.display = disp;
+      document.getElementById("bottombuttons").style.display = disp;
+      if (document.getElementById("instructioniFrame").src)
+          document.getElementById("viewInstructionsButton").style.display = disp;
+      
+  }
+  
+  function labellingInstructionDisplay(disp) {
+      document.getElementById("instructioniFrame").style.display = disp;
+      document.getElementById("instructionAccept").style.display = disp;
+  }
+  
+  imageAndLabellingControlDisplay('none');
+  labellingInstructionDisplay('none');
+  
+  function maybeDisplayInstructions(instructionUrl) {
+      document.getElementById("instructioniFrame").src=instructionUrl;
+      instructionNoQueryParams=instructionUrl.split("?")[0];
+      
+      if (instructionUrl && (instructionNoQueryParams == localStorage.getItem("lastInstructions-"+state.projectId))) {
+          // Instructions already accepted.
+          imageAndLabellingControlDisplay('')
+          labellingInstructionDisplay('none');
+      } else {
+          imageAndLabellingControlDisplay('none')
+          labellingInstructionDisplay('');
+      }
+  }
+  
+  function viewInstructions() {
+      imageAndLabellingControlDisplay('none')
+      labellingInstructionDisplay('');
+      return false
+  }
+  
+  function acceptInstructions() {
+      acceptedUrl = document.getElementById("instructioniFrame").src.split("?")[0];
+      instructionNoQueryParams = acceptedUrl.split("?")[0];
+      
+      localStorage.setItem("lastInstructions-"+state.projectId, instructionNoQueryParams)
+      
+      imageAndLabellingControlDisplay('')
+      labellingInstructionDisplay('none');
+  }
 
   function populateQuestion({ type, name, options, instructions }, answer) {
     optionList = options.map(({ value, label }) => {
@@ -215,6 +285,7 @@ input[type="radio"] {
     classifications = customization.classifications;
     drawQuestions(classifications);
     markQuestionsAsLoaded();
+    maybeDisplayInstructions(customization.projectInstructions);
   });
 
   function skip() {
@@ -300,6 +371,7 @@ input[type="radio"] {
   function drawAsset(asset) {
     document.getElementById("back").disabled = !Boolean(asset.previous);  
     document.getElementById("next").disabled = !Boolean(asset.next || asset.label);
+    document.getElementById("skip").disabled = false;
     //document.getElementById("submit").disabled = true;
 
     if ((state.currentAsset && state.currentAsset.data) !== asset.data) {
