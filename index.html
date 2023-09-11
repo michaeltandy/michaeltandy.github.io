@@ -155,7 +155,7 @@ input[type="radio"] {
 </div>
 
 <div class="rightpane">
-  <iframe id="instructioniFrame" class="instructioniFrame" src="" width='100%' height='100%'></iframe>
+  <iframe id="instructioniFrame" class="instructioniFrame" src="about:blank" width='100%' height='100%'></iframe>
   <div id="imageParent" class="bigdiv">
     <img id="imageToLabel" width="100%" src="">
   </div>
@@ -184,9 +184,12 @@ input[type="radio"] {
       document.getElementById("assetExternalId").style.display = disp;
       document.getElementById("questionList").style.display = disp;
       document.getElementById("bottombuttons").style.display = disp;
-      if (document.getElementById("instructioniFrame").src)
+      if (document.getElementById("instructioniFrame").src && document.getElementById("instructioniFrame").src != 'about:blank') {
           document.getElementById("viewInstructionsButton").style.display = disp;
-      
+      } else {
+          // No instructions, so never show a display button
+          document.getElementById("viewInstructionsButton").style.display = 'none';
+      }
   }
   
   function labellingInstructionDisplay(disp) {
@@ -198,16 +201,23 @@ input[type="radio"] {
   labellingInstructionDisplay('none');
   
   function maybeDisplayInstructions(instructionUrl) {
-      document.getElementById("instructioniFrame").src=instructionUrl;
-      instructionNoQueryParams=instructionUrl.split("?")[0];
+      if (instructionUrl) {
+          document.getElementById("instructioniFrame").src=instructionUrl;
+          instructionNoQueryParams=instructionUrl.split("?")[0];
       
-      if (instructionUrl && (instructionNoQueryParams == localStorage.getItem("lastInstructions-"+state.projectId))) {
-          // Instructions already accepted.
+          if (instructionNoQueryParams == localStorage.getItem("lastInstructions-"+state.projectId)) {
+              // Instructions already accepted.
+              imageAndLabellingControlDisplay('')
+              labellingInstructionDisplay('none');
+              return
+          } else {
+              imageAndLabellingControlDisplay('none')
+              labellingInstructionDisplay('');
+          }
+      } else {
+          // No instructions - behave as if already accepted:
           imageAndLabellingControlDisplay('')
           labellingInstructionDisplay('none');
-      } else {
-          imageAndLabellingControlDisplay('none')
-          labellingInstructionDisplay('');
       }
   }
   
@@ -383,6 +393,7 @@ input[type="radio"] {
         try {
           const label = JSON.parse(asset.label);
           drawQuestions(classifications, label);
+          console.log(label)
         } catch (e) {
           console.log("failed to read label", e);
         }
